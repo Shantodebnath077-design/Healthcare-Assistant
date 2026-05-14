@@ -32,7 +32,7 @@ void HealthIndices(float weight, float height_cm, float waist, int age, char gen
     else
         nutrition = "\033[31mHyperalimentation\033[0m";
 }
-void saveData(string username, int age, float bmi, float whtr, float ibws, float ibwe, float bodyfat, string nutrition)
+void saveData(string username, int age, float bmi, float whtr, float ibws, float ibwe, float bodyfat, char gender, string nutrition)
 {
     vector<string> allLines;
     vector<string> userLines;
@@ -55,15 +55,16 @@ void saveData(string username, int age, float bmi, float whtr, float ibws, float
     time_t now = time(0);
     tm *ltm = localtime(&now);
     string dateTime =
-        to_string(1900 + ltm->tm_year) + "-" +
+        to_string(ltm->tm_mday) + "-" +
         to_string(1 + ltm->tm_mon) + "-" +
-        to_string(ltm->tm_mday) + "&" +
+        to_string(1900 + ltm->tm_year) + "&" +
         to_string(ltm->tm_hour) + ":" +
         to_string(ltm->tm_min);
     string newRecord =
         username + " " +
         dateTime + " " +
         to_string(age) + " " +
+        string(1, gender) + " " +
         to_string(bmi) + " " +
         to_string(whtr) + " " +
         to_string(ibws) + " " +
@@ -82,18 +83,19 @@ void showData(string username)
 {
     ifstream in("health_data.txt");
     string u, nutrition, dateTime;
+    char gender;
     int age;
     float bmi, whtr, ibws, ibwe, bodyfat;
     bool found = false;
-    cout << BT << "--------Your saved data-------" << RET << endl;
-    while (in >> u >> dateTime >> age >> bmi >> whtr >> ibws >> ibwe >> bodyfat >> nutrition)
+    cout << BT << "\n--------Your saved data-------" << RET << endl;
+    while (in >> u >> dateTime >> age >> gender >> bmi >> whtr >> ibws >> ibwe >> bodyfat >> nutrition)
     {
         if (u == username)
         {
             found = true;
             replace(nutrition.begin(), nutrition.end(), '_', ' ');
             replace(dateTime.begin(), dateTime.end(), '&', ' ');
-            cout << YT << "Date & Time: " << dateTime << RET << endl;
+            cout << YT << "\nDate & Time: " << dateTime << RET << endl;
             if (bmi >= 18.5 && bmi <= 24.9)
                 cout << "BMI (Body Mass Index): " << GT << fixed << setprecision(1) << bmi << RET << endl;
             else
@@ -118,7 +120,7 @@ void showData(string username)
 }
 void healthAdvice(float bmi, float whtr, float bodyfat, char gender, int age)
 {
-    cout << BT << "\n----- Health Recommendations -----" << RET << endl;
+    cout << BT << "\n-------- Health Recommendations ---------" << RET << endl;
     // BMI advice
     if (bmi < 18.5)
         cout << RT << "# Your BMI is low and you are underweight. Eat foods high in healthy fats and proteins.\n  Incorporate strength training to ensure weight gain is muscle, not just fat." << RET << endl;
@@ -138,11 +140,19 @@ void healthAdvice(float bmi, float whtr, float bodyfat, char gender, int age)
         cout << GT << "# Your WHtR is within healthy range." << RET << endl;
     // Body fat advice
     if (age > 19 && bodyfat > 25)
-        cout << RT << "# Body fat is high. Increase physical activity and eat healthy foods." << RET << endl;
-    if (age < 19 && bodyfat > 20)
-        cout << RT << "# Body fat is high.Increase physical activity at least 60 minutes/day,limit screen time,ensure proper sleep." << RET << endl;
-    if (gender == 'm' || gender == 'M')
-        cout << GT << "# Drink enough water(3.1 liters) daily ." << RET << endl;
+        cout << RT << "# Your Body fat is high. Increase physical activity and eat healthy foods." << RET << endl;
+    else if (age < 19 && bodyfat > 20)
+        cout << RT << "# Your Body fat is high.Increase physical activity at least 60 minutes/day,limit screen time,ensure proper sleep." << RET << endl;
+    else
+        cout << "# Your Body fat is normal.Focus on a consistent balance of nutrient-dense whole foods and regular strength training." << endl;
+    if (age > 4 && age <= 8)
+        cout << GT << "# Drink enough water(1.2 liters) daily ." << RET << endl;
+    else if (age > 9 && age <= 13)
+        cout << GT << "# Drink enough water(1.6-1.9 liters) daily." << RET << endl;
+    else if (age > 14 && age <= 18)
+        cout << GT << "# Drink enough water(1.6-2.4 liters) daily." << RET << endl;
+    else if (gender == 'm' || gender == 'M' && age > 18)
+        cout << GT << "# Drink enough water(3.1 liters) daily." << RET << endl;
     else
         cout << GT << "# Drink enough water(2.1 liters) daily." << RET << endl;
     cout << GT << "# Sleep 7-8 hours regularly." << RET << endl;
@@ -195,7 +205,7 @@ void registerUser()
     ofstream file("users.txt", ios::app);
     file << username << " " << password << endl;
     file.close();
-    cout << GT << "-------Registration successful!-------" << RET << endl;
+    cout << GT << "\n-------Registration successful!-------" << RET << endl;
 }
 bool loginUser(string &username)
 {
@@ -217,16 +227,17 @@ bool loginUser(string &username)
     }
     return false;
 }
-void chatbot(string username)
+void chatbot(string username, float ibws, float ibwe)
 {
     cin.ignore();
     string msg, bmi_status = "";
-    float bmi = -1, whtr = -1, bodyfat = -1, muac = -1, ibw = -1;
-    cout << BT << "\n\n----- Health Chatbot -----" << RET << endl;
-    cout << "Bot: Enter health indices (bmi, whtr, bodyfat, ibw)" << RET << endl;
-    cout << "     " << "Example ---->" << YT << "bmi 24 whtr 0.48 bodyfat 22" << RET << endl;
+    float bmi = -1, whtr = -1, bodyfat = -1, bw = -1;
+    cout << BT << "\n--------- Health Chatbot ---------\n"
+         << RET << endl;
+    cout << "Bot: Enter health indices (bmi, whtr, bodyfat)" << RET << endl;
+    cout << "     " << "Example ---->" << YT << "bmi 24, whtr 0.48, bodyfat 22%" << RET << endl;
     cout << "     " << "Then ask for" << YT << " 'lifestyle suggestion'" << RET << " or " << YT << " 'food suggestion'" << RET << endl;
-    cout << "     " << "You can also" << YT << "ask about those indices" << RET << endl;
+    cout << "     " << "You can also" << YT << " ask about those indices" << RET << endl;
     cout << "     " << "Type" << YT << " exit" << RET << " to stop" << endl;
     while (true)
     {
@@ -261,6 +272,11 @@ void chatbot(string username)
         if (lmsg.find("thank") != string::npos || lmsg.find("thanks") != string::npos)
         {
             cout << GT << "Happy to help. Take care of yourself." << RET << endl;
+            goto level;
+        }
+        if (lmsg.find("ok") != string::npos || lmsg.find("okay") != string::npos)
+        {
+            cout << "Happy to help. You can ask further questions." << endl;
             goto level;
         }
         if (lmsg == "bmi" || lmsg == "body mass index" || lmsg.find("what is bmi") != string::npos || lmsg.find("what is body mass index") != string::npos)
@@ -301,7 +317,7 @@ void chatbot(string username)
         /* -------- DETECT INDICES -------- */
         for (int i = 0; i < words.size(); i++)
         {
-            if (words[i] == "bmi" || words[i] == "whtr" || words[i] == "bodyfat" || words[i] == "ibw")
+            if (words[i] == "bmi" || words[i] == "mass" || words[i] == "whtr" || words[i] == "waist" || words[i] == "bodyfat" || words[i] == "fat")
             {
                 float value = -1;
                 for (int j = i + 1; j < words.size(); j++)
@@ -318,7 +334,7 @@ void chatbot(string username)
                 if (value == -1)
                     continue;
                 indexDetected = true;
-                if (words[i] == "bmi")
+                if (words[i] == "bmi" || words[i] == "mass")
                 {
                     bmi = value;
                     if (bmi < 18.5)
@@ -332,22 +348,16 @@ void chatbot(string username)
                     cout << "Your BMI is " << bmi << " -----> " << bmi_status << endl
                          << "     ";
                 }
-                else if (words[i] == "whtr")
+                else if (words[i] == "whtr" || words[i] == "waist")
                 {
                     whtr = value;
                     cout << "Your WHtR is " << whtr << " -----> " << (whtr < 0.5 ? "\033[32mHealthy\033[0m" : "\033[31mHigh Risk\033[0m") << endl
                          << "     ";
                 }
-                else if (words[i] == "bodyfat")
+                else if (words[i] == "bodyfat" || words[i] == "fat")
                 {
                     bodyfat = value;
                     cout << "Your BodyFat is " << bodyfat << " -----> " << (bodyfat <= 25 ? "\033[32mNormal\033[0m" : "\033[31mHigh\033[0m") << endl
-                         << "     ";
-                }
-                else if (words[i] == "ibw")
-                {
-                    ibw = value;
-                    cout << "Your IBW is (Ideal Body Weight) " << GT << ibw << " kg" << RET << endl
                          << "     ";
                 }
             }
@@ -355,51 +365,65 @@ void chatbot(string username)
         if (indexDetected)
             continue;
         /* ---------- LIFESTYLE SUGGESTION ---------- */
-        if (lmsg.find("lifestyle") != string::npos || lmsg.find("life style") != string::npos || lmsg.find("do") != string::npos)
+        if (lmsg.find("lifestyle") != string::npos || lmsg.find("life style") != string::npos || lmsg.find("do") != string::npos || lmsg.find("advices") != string::npos || lmsg.find("advice") != string::npos)
         {
             if (bmi < 18.5 && bmi != -1)
-                cout << BT << "Increase calorie intake and do strength training" << RET << endl
+                cout << "Increase calorie intake and do strength training. Eat more frequently (5-6 small meals/day).\n     Focus on nutrient-dense foods. Add strength training to build muscle.\n     Consider checking for underlying issues (e.g., thyroid, digestion)." << endl
                      << "     ";
             else if (bmi < 25 && bmi != -1)
-                cout << BT << "Maintain active lifestyle and daily exercise" << RET << endl
+                cout << "Maintain active lifestyle and daily exercise.Maintain a balanced diet (protein, carbs, healthy fats).\n     Stay physically active (150 + minutes / week). Prioritize sleep and stress management.\n     Keep an eye on waist circumference and fitness,not just weight " << endl
                      << "     ";
             else if (bmi < 30 && bmi != -1)
-                cout << BT << "Do cardio exercise and reduce sedentary habits" << RET << endl
+                cout << "Do cardio exercise and reduce sedentary habits. Aim for gradual weight loss (0.5-1 kg/week).\n     Practice portion control. Increase dailymovement (walking, cycling).\n     Reduce processed foods and sugary drinks " << endl
                      << "     ";
             else if (bmi > 30 && bmi != -1)
-                cout << BT << "Strict low-calorie diet, vegetables, lean protein, avoid fried foods, exercise daily." << RET << endl
+                cout << "Strict low-calorie diet, vegetables, lean protein, avoid fried foods, exercise daily.\n     Seek medical guidance for a structured plan. Focus on sustainable lifestyle changes,not crash diets.\n     Start with low -impact exercise (walking, swimming). Consider behavioral support or counseling if needed " << endl
                      << "     ";
-            if (whtr > 0.5)
-                cout << BT << "Reduce abdominal fat by cutting sugar/refined carbs and increasing fiber and exercise." << RET << endl
+            else
+                cout << "Your BMI is normal. Maintain a balanced diet and regular exercise. Stay physically active.\n     Prioritize sleep andstress management. Keep an eye on waist circumference and fitness, not just weight " << endl
                      << "     ";
-            if (bodyfat > 25)
-                cout << BT << "Increase physical activity" << RET << endl
+            if (whtr > 0.5 && whtr != -1)
+                cout
+                    << "Reduce abdominal fat by cutting sugar/refined carbs and increasing fiber and exercise.Walk daily.\n     Improve sleep (very important for fat loss). Prioritize fat loss (not just weight loss).\n     Seek medical or nutrition guidance. Avoid crash diets — aim for sustainable habits " << endl
+                    << "     ";
+            else
+                cout << "Your WHtR is within healthy range. Maintain active lifestyle + balanced diet.\n     Monitor waist size occasionally (fat tends to creep up quietly)." << endl
+                     << "     ";
+
+            if (bodyfat > 25 && bodyfat != -1)
+                cout << "Increase physical activity. Start fat loss phase. Combine diet control + resistance training.\n     Seek structured weight loss plan. Focus on long-term habit change" << endl
+                     << "     ";
+            else
+                cout << "Your Body fat is normal.Focus on a consistent balance of nutrient-dense whole foods and regular strength training." << endl
                      << "     ";
             if (bmi == -1 && whtr == -1 && bodyfat == -1)
-                cout << RT << "Please provide health indices first" << RET << endl
-                     << "     ";
+                cout
+                    << RT << "Please provide health indices first." << RET << endl
+                    << "     ";
         }
         /* ---------- FOOD SUGGESTION ---------- */
-        else if (lmsg.find("food") != string::npos || lmsg.find("eat") != string::npos)
+        else if (lmsg.find("food") != string::npos || lmsg.find("eat") != string::npos || lmsg.find("diet") != string::npos)
         {
             if (bmi < 18.5 && bmi != -1)
-                cout << "Milk, eggs, nuts, rice, banana" << RET << endl
+                cout << "Milk, eggs, nuts, rice, banana." << endl
                      << "     ";
             else if (bmi < 25 && bmi != -1)
-                cout << BT << "Fruits, vegetables, fish, whole grains" << RET << endl
+                cout << "Fruits, vegetables, fish, whole grains." << endl
                      << "     ";
             else if (bmi != -1)
-                cout << BT << "Salad, oats, vegetables, lean protein" << RET << endl
+                cout << "Salad, oats, vegetables, lean protein." << endl
                      << "     ";
             if (whtr > 0.5)
-                cout << BT << "Avoid sugary drinks and fried foods" << RET << endl
+                cout << "Avoid sugary drinks and fried foods." << endl
                      << "     ";
             if (bodyfat > 25)
-                cout << BT << "Reduce fatty foods and increase fiber" << RET << endl
+                cout << "Reduce fatty foods and increase fiber." << endl
                      << "     ";
             if (bmi == -1 && whtr == -1 && bodyfat == -1)
-                cout << RT << "Please provide health indices first" << RET << endl
+                cout << "Please provide health indices first." << endl
                      << "     ";
+            if (bmi != -1 || whtr != -1 || bodyfat != -1)
+                cout << BT << "\n     **Use option 4(diet plan) for better suggestion." << RET << endl;
         }
         else
         {
@@ -414,11 +438,13 @@ float getLastBMI(string username)
 
     string u, dateTime, nutrition;
     int age;
+    char gender;
+
     float bmi, whtr, ibws, ibwe, bodyfat;
 
     float lastBMI = -1;
 
-    while (in >> u >> dateTime >> age >> bmi >> whtr >> ibws >> ibwe >> bodyfat >> nutrition)
+    while (in >> u >> dateTime >> age >> gender >> bmi >> whtr >> ibws >> ibwe >> bodyfat >> nutrition)
     {
         if (u == username)
         {
@@ -435,11 +461,13 @@ int getLastAge(string username)
 
     string u, dateTime, nutrition;
     int age;
+    char gender;
+
     float bmi, whtr, ibws, ibwe, bodyfat;
 
     int lastAge = -1;
 
-    while (in >> u >> dateTime >> age >> bmi >> whtr >> ibws >> ibwe >> bodyfat >> nutrition)
+    while (in >> u >> dateTime >> age >> gender >> bmi >> whtr >> ibws >> ibwe >> bodyfat >> nutrition)
     {
         if (u == username)
         {
@@ -449,7 +477,28 @@ int getLastAge(string username)
     in.close();
     return lastAge;
 }
-void dietPlan(float bmi, int age)
+int getLastGender(string username)
+{
+    ifstream in("health_data.txt");
+
+    string u, dateTime, nutrition;
+    int age;
+    char gender;
+    float bmi, whtr, ibws, ibwe, bodyfat;
+
+    char lastGender = ' ';
+
+    while (in >> u >> dateTime >> age >> gender >> bmi >> whtr >> ibws >> ibwe >> bodyfat >> nutrition)
+    {
+        if (u == username)
+        {
+            lastGender = gender;
+        }
+    }
+    in.close();
+    return lastGender;
+}
+void dietPlan(float bmi, int age, char gender)
 {
     string ageGroup;
     // -------- AGE CLASSIFICATION --------
@@ -462,120 +511,121 @@ void dietPlan(float bmi, int age)
     else
         ageGroup = "Senior";
 
-    cout << YT << "================ DIET PLAN ================" << RET << endl;
+    cout << YT << "\n---------- DIET PLAN ----------\n"
+         << RET << endl;
     cout << BT << "Age Group: " << ageGroup << RET << endl;
-    cout << BT << "BMI: " << bmi << endl
+    cout << BT << "BMI: " << fixed << setprecision(1) << bmi << endl
          << RET;
     if (bmi < 18.5)
     {
-        cout << YT << "Goal --------- Healthy Weight Gain" << RET << endl;
+        cout << YT << "Goal ----------> Healthy Weight Gain" << RET << endl;
 
         if (ageGroup == "Teen")
         {
-            cout << GT << "Breakfast:" << RET << "Milk 300 ml, Eggs 2, Banana 1, Bread 2 slices\n";
-            cout << GT << "Lunch:" << RET << " Rice 2 cups, Chicken/Fish 150g, Vegetables 1 cup, Dal 1 cup\n";
-            cout << GT << "Dinner:" << RET << " Rice 1.5 cups, Egg curry (2 eggs), Vegetables 1 cup\n";
-            cout << GT << "Snacks:" << RET << " Nuts 30g, Dates 3-5, Yogurt 100g\n";
+            cout << GT << "Breakfast:" << RET << "Milk 300 ml, 2 Eggs, Banana 1, Bread 2 slices.\n";
+            cout << GT << "Lunch:" << RET << " Rice 2 cups, Chicken/Fish 150g, Vegetables 1 cup, Dal 1 cup.\n";
+            cout << GT << "Dinner:" << RET << " Rice 1.5 cups, Egg curry (2 eggs), Vegetables 1 cup.\n";
+            cout << GT << "Snacks:" << RET << " Nuts 30g, 3-5 Dates , Yogurt 100g.\n";
         }
 
         else if (ageGroup == "Young Adult")
         {
-            cout << GT << "Breakfast:" << RET << " Milk 250 ml, Eggs 2, Oats 50g, Banana 1\n";
-            cout << GT << "Lunch:" << RET << " Rice 2 cups, Chicken/Fish 150g, Vegetables 1 cup\n";
-            cout << GT << "Dinner:" << RET << " Rice 1.5 cups, Protein 150g, Vegetables 1 cup\n";
-            cout << GT << "Snacks:" << RET << " Nuts 30g, Peanut butter 2 tbsp\n";
+            cout << GT << "Breakfast:" << RET << " Milk 250 ml, 2 Eggs, Oats 50g, 1 Banana.\n";
+            cout << GT << "Lunch:" << RET << " Rice 2 cups, Chicken/Fish 150g, Vegetables 1 cup.\n";
+            cout << GT << "Dinner:" << RET << " Rice 1.5 cups, Protein 150g, Vegetables 1 cup.\n";
+            cout << GT << "Snacks:" << RET << " Nuts 30g, Peanut butter 2 tbsp.\n";
         }
 
         else if (ageGroup == "Adult")
         {
-            cout << GT << "Breakfast:" << RET << " Milk 250 ml, Eggs 2, Oats 40g\n";
-            cout << GT << "Lunch:" << RET << " Rice 1.5 cups, Chicken/Fish 150g, Vegetables 1.5 cups\n";
-            cout << GT << "Dinner:" << RET << " Rice 1 cup, Protein 120g, Vegetables 1 cup\n";
-            cout << GT << "Snacks:" << RET << " Nuts 25g, Fruit 1\n";
+            cout << GT << "Breakfast:" << RET << " Milk 250 ml, 2 Eggs, Oats 40g.\n";
+            cout << GT << "Lunch:" << RET << " Rice 1.5 cups, Chicken/Fish 150g, Vegetables 1.5 cups.\n";
+            cout << GT << "Dinner:" << RET << " Rice 1 cup, Protein 120g, Vegetables 1 cup.\n";
+            cout << GT << "Snacks:" << RET << " Nuts 25g, Fruits.\n";
         }
 
         else // Senior
         {
-            cout << GT << "Breakfast:" << RET << " Milk 200 ml, Soft egg 1-2, Banana 1\n";
-            cout << GT << "Lunch:" << RET << " Rice 1 cup, Fish 100g, Vegetables 1.5 cups\n";
-            cout << GT << "Dinner:" << RET << " Soft khichdi/Soup, Protein 80-100g\n";
-            cout << GT << "Snacks:" << RET << " Nuts 15g, Fruit 1, Yogurt 100g\n";
+            cout << GT << "Breakfast:" << RET << " Milk 200 ml, 1-2 Egg , 1 Banana.\n";
+            cout << GT << "Lunch:" << RET << " Rice 1 cup, Fish 100g, Vegetables 1.5 cups.\n";
+            cout << GT << "Dinner:" << RET << " Soft khichdi/Soup, Protein 80-100g.\n";
+            cout << GT << "Snacks:" << RET << " Nuts 15g, Fruits, Yogurt 100g.\n";
         }
     }
 
     // ================= NORMAL =================
     else if (bmi >= 18.5 && bmi <= 24.9)
     {
-        cout << YT << "Goal -------- Maintain Healthy Body" << RET << endl;
+        cout << YT << "Goal --------> Maintain Healthy Body" << RET << endl;
 
         if (ageGroup == "Teen")
         {
-            cout << GT << "Breakfast:" << RET << " Milk 250 ml, Egg 1, Bread 1 slice, Fruit 1\n";
-            cout << GT << "Lunch:" << RET << " Rice 1.5 cups, Fish/Chicken 100g, Vegetables 1 cup, Dal 0.5 cup\n";
-            cout << GT << "Dinner:" << RET << " Rice 1 cup, Protein 100g, Vegetables 1 cup\n";
-            cout << GT << "Snacks:" << RET << " Fruit 1, Biscuits 2\n";
+            cout << GT << "Breakfast:" << RET << " Milk 250 ml, 1 Egg , Bread 1 slice, Fruit.\n";
+            cout << GT << "Lunch:" << RET << " Rice 1.5 cups, Fish/Chicken 100g, Vegetables 1 cup, Dal 0.5 cup.\n";
+            cout << GT << "Dinner:" << RET << " Rice 1 cup, Protein 100g, Vegetables 1 cup.\n";
+            cout << GT << "Snacks:" << RET << " Fruits, Biscuits.\n";
         }
 
         else if (ageGroup == "Young Adult")
         {
-            cout << GT << "Breakfast:" << RET << " Oats 50g, Eggs 1-2, Milk 200 ml\n";
-            cout << GT << "Lunch:" << RET << " Rice 1.5 cups, Protein 120g, Vegetables 1-2 cups\n";
-            cout << GT << "Dinner:" << RET << " 2 roti or Rice 1 cup, Protein 100g, Vegetables\n";
-            cout << GT << "Snacks:" << RET << " Nuts 20g, Tea\n";
+            cout << GT << "Breakfast:" << RET << " Oats 50g,  1-2 Eggs, Milk 200 ml.\n";
+            cout << GT << "Lunch:" << RET << " Rice 1.5 cups, Protein 120g, Vegetables 1-2 cups.\n";
+            cout << GT << "Dinner:" << RET << " 2 roti or Rice 1 cup, Protein 100g, Vegetables.\n";
+            cout << GT << "Snacks:" << RET << " Nuts 20g, Tea.\n";
         }
 
         else if (ageGroup == "Adult")
         {
-            cout << GT << "Breakfast:" << RET << " Oats 40g, Egg 1, Milk 200 ml\n";
-            cout << GT << "Lunch:" << RET << " Rice 1-1.5 cups, Protein 120g, Vegetables 2 cups\n";
-            cout << GT << "Dinner:" << RET << " 2 roti, Protein 100g, Vegetables 2 cups\n";
-            cout << GT << "Snacks:" << RET << " Fruit 1, Nuts 20g\n";
+            cout << GT << "Breakfast:" << RET << " Oats 40g, 1 Egg, Milk 200 ml.\n";
+            cout << GT << "Lunch:" << RET << " Rice 1-1.5 cups, Protein 120g, Vegetables 2 cups.\n";
+            cout << GT << "Dinner:" << RET << " 2 roti, Protein 100g, Vegetables 2 cups.\n";
+            cout << GT << "Snacks:" << RET << " Fruit 1, Nuts 20g.\n";
         }
 
         else // Senior
         {
-            cout << GT << "Breakfast:" << RET << " Milk 200 ml, Soft porridge 40g\n";
-            cout << GT << "Lunch:" << RET << " Rice 1 cup, Fish 80g, Vegetables 2 cups\n";
-            cout << GT << "Dinner:" << RET << " Soup + soft vegetables + Protein 80g\n";
-            cout << GT << "Snacks:" << RET << " Fruit 1, Yogurt 100g\n";
+            cout << GT << "Breakfast:" << RET << " Milk 200 ml, Soft porridge 40g.\n";
+            cout << GT << "Lunch:" << RET << " Rice 1 cup, Fish 80g, Vegetables 2 cups.\n";
+            cout << GT << "Dinner:" << RET << " Soup + soft vegetables + Protein 80g.\n";
+            cout << GT << "Snacks:" << RET << " Fruits, Yogurt 100g.\n";
         }
     }
 
     // ================= OVERWEIGHT =================
     else if (bmi >= 25 && bmi <= 29.9)
     {
-        cout << YT << "Goal -------- Weight Loss" << RET << endl;
+        cout << YT << "Goal --------> Weight Loss" << RET << endl;
 
         if (ageGroup == "Teen")
         {
-            cout << GT << "Breakfast:" << RET << " Egg 1, Bread 1 slice, Milk 200 ml\n";
-            cout << GT << "Lunch:" << RET << " Rice 1 cup, Protein 100g, Vegetables 2 cups\n";
-            cout << GT << "Dinner:" << RET << " 2 roti, Protein 80g, Vegetables 2 cups\n";
-            cout << GT << "Snacks:" << RET << " Fruit 1, Avoid junk food\n";
+            cout << GT << "Breakfast:" << RET << " 1 Egg, Bread 1 slice, Milk 200 ml.\n";
+            cout << GT << "Lunch:" << RET << " Rice 1 cup, Protein 100g, Vegetables 2 cups.\n";
+            cout << GT << "Dinner:" << RET << " 2 roti, Protein 80g, Vegetables 2 cups.\n";
+            cout << GT << "Snacks:" << RET << " Fruit 1, Avoid junk food.\n";
         }
 
         else if (ageGroup == "Young Adult")
         {
-            cout << GT << "Breakfast:" << RET << " Oats 40g, Egg 1, Green tea\n";
-            cout << GT << "Lunch:" << RET << " Brown rice 1 cup, Chicken/Fish 120g, Vegetables 2 cups\n";
-            cout << GT << "Dinner:" << RET << " Salad 2 cups, Protein 100g\n";
-            cout << GT << "Snacks:" << RET << " Apple 1, Nuts 15g\n";
+            cout << GT << "Breakfast:" << RET << " Oats 40g, 1 Egg, Green tea.\n";
+            cout << GT << "Lunch:" << RET << " Brown rice 1 cup, Chicken/Fish 120g, Vegetables 2 cups.\n";
+            cout << GT << "Dinner:" << RET << " Salad 2 cups, Protein 100g.\n";
+            cout << GT << "Snacks:" << RET << " Apple 1, Nuts 15g.\n";
         }
 
         else if (ageGroup == "Adult")
         {
-            cout << GT << "Breakfast:" << RET << " Oats 40g, Egg 1\n";
-            cout << GT << "Lunch:" << RET << " Rice 1 cup, Protein 120g, Vegetables 2-3 cups\n";
-            cout << GT << "Dinner:" << RET << " Soup + Salad, Protein 100g\n";
-            cout << GT << "Snacks:" << RET << " Roasted chickpeas 25g\n";
+            cout << GT << "Breakfast:" << RET << " Oats 40g, 1 Egg.\n";
+            cout << GT << "Lunch:" << RET << " Rice 1 cup, Protein 120g, Vegetables 2-3 cups.\n";
+            cout << GT << "Dinner:" << RET << " Soup + Salad, Protein 100g.\n";
+            cout << GT << "Snacks:" << RET << " Roasted chickpeas 25g.\n";
         }
 
         else // Senior
         {
-            cout << GT << "Breakfast:" << RET << " Oats 30g, Milk 150 ml\n";
-            cout << GT << "Lunch:" << RET << " Rice 0.5-1 cup, Fish 80g, Vegetables 2 cups\n";
+            cout << GT << "Breakfast:" << RET << " Oats 30g, Milk 150 ml.\n";
+            cout << GT << "Lunch:" << RET << " Rice 0.5-1 cup, Fish 80g, Vegetables 2 cups.\n";
             cout << GT << "Dinner:" << RET << " Soup + soft vegetables\n";
-            cout << GT << "Snacks:" << RET << " Fruit 1\n";
+            cout << GT << "Snacks:" << RET << " Dry Fruits.\n";
             cout << GT << "\nNote:" << RET << " Avoid strict dieting, focus on light activity.\n";
         }
     }
@@ -583,42 +633,45 @@ void dietPlan(float bmi, int age)
     // ================= OBESE =================
     else
     {
-        cout << YT << "Goal -------- Obesity Management" << RET << endl;
+        cout << YT << "Goal --------> Obesity Management" << RET << endl;
 
         if (ageGroup == "Teen")
         {
-            cout << GT << "Breakfast" << RET << ": Egg 1, Milk 200 ml\n";
-            cout << GT << "Lunch:" << RET << " Rice 1 cup, Protein 100g, Vegetables 2 cups\n";
-            cout << GT << "Dinner:" << RET << " 2 roti, Vegetables 2 cups, Protein 80g\n";
-            cout << GT << "Snacks:" << RET << " Fruits only\n";
+            cout << GT << "Breakfast" << RET << ": 1 Egg, Milk 200 ml.\n";
+            cout << GT << "Lunch:" << RET << " Rice 1 cup, Protein 100g, Vegetables 2 cups.\n";
+            cout << GT << "Dinner:" << RET << " 2 roti, Vegetables 2 cups, Protein 80g.\n";
+            cout << GT << "Snacks:" << RET << " Fruits only.\n";
         }
 
         else if (ageGroup == "Young Adult")
         {
-            cout << GT << "Breakfast:" << RET << " Oats 30g, Egg whites 2\n";
-            cout << GT << "Lunch:" << RET << " Brown rice 0.5-1 cup, Protein 100g, Vegetables 2 cups\n";
-            cout << GT << "Dinner:" << RET << " Salad + Soup, Protein 100g\n";
-            cout << GT << "Snacks:" << RET << " Fruits, Green tea\n";
+            cout << GT << "Breakfast:" << RET << " Oats 30g,2 Egg whites.\n";
+            cout << GT << "Lunch:" << RET << " Brown rice 0.5-1 cup, Protein 100g, Vegetables 2 cups.\n";
+            cout << GT << "Dinner:" << RET << " Salad + Soup, Protein 100g.\n";
+            cout << GT << "Snacks:" << RET << " Fruits, Green tea.\n";
         }
 
         else if (ageGroup == "Adult")
         {
-            cout << GT << "Breakfast:" << RET << " Oats 30g, Egg 1\n";
-            cout << GT << "Lunch:" << RET << " Rice 0.5-1 cup, Protein 100g, Vegetables 3 cups\n";
-            cout << GT << "Dinner:" << RET << " Soup + Salad, Protein 80-100g\n";
-            cout << GT << "Snacks:" << RET << " Nuts 10g, Fruit\n";
+            cout << GT << "Breakfast:" << RET << " Oats 30g,1 Egg.\n";
+            cout << GT << "Lunch:" << RET << " Rice 0.5-1 cup, Protein 100g, Vegetables 3 cups.\n";
+            cout << GT << "Dinner:" << RET << " Soup + Salad, Protein 80-100g.\n";
+            cout << GT << "Snacks:" << RET << " Nuts 10g, Fruit.\n";
         }
 
         else // Senior
         {
-            cout << GT << "Breakfast:" << RET << " Soft oats 30g, Milk 150 ml\n";
-            cout << GT << "Lunch:" << RET << " Rice 0.5 cup, Fish 80g, Vegetables 2-3 cups\n";
-            cout << GT << "Dinner:" << RET << " Soup + soft vegetables\n";
-            cout << GT << "Snacks:" << RET << " Fruit only\n";
+            cout << GT << "Breakfast:" << RET << " Soft oats 30g, Milk 150 ml.\n";
+            cout << GT << "Lunch:" << RET << " Rice 0.5 cup, Fish 80g, Vegetables 2-3 cups.\n";
+            cout << GT << "Dinner:" << RET << " Soup + soft vegetables.\n";
+            cout << GT << "Snacks:" << RET << " Fruit only.\n";
             cout << GT << "\nSenior Note:" << RET << " Safe weight loss only, no fasting.\n";
         }
     }
-    cout << GT << "Drink enough water(2.1-3.1 liters) and avoid excessive sugar and fried food and exercise regularly." << RET << endl;
+    if (gender == 'M' || gender == 'm')
+        cout << GT << "Drink enough water (3.1 liters) and avoid excessive sugar and fried food and exercise regularly." << RET << endl;
+    else
+        cout << GT << "Drink enough water (2.1 liters) and avoid excessive sugar and fried food and exercise regularly." << RET << endl;
 }
 int main()
 {
@@ -640,13 +693,13 @@ Level_1:
         string username;
         if (loginUser(username))
         {
-            cout << GT << "-------Login successful!-------" << RET << endl;
-            cout << endl;
+            cout << GT << "\n-------Login successful!-------" << RET << endl;
+
             float bmi = 0, whtr = 0, ibws = 0, ibwe = 0, bodyfat = 0, weight = 0;
-            string nutrition = "";
+            string nutrition = "", gender = "";
             bool diet = false;
         level_2:
-            cout << "1. Health Assistant\n";
+            cout << "\n1. Health Assistant\n";
             cout << "2. Chatbot\n";
             cout << "3. Saved data\n";
             cout << "4. Diet Plan\n";
@@ -662,21 +715,29 @@ Level_1:
             case 1:
             level_4:
                 diet = true;
-                float height, waist, muac;
+                float height, waist;
                 int age;
                 char gender;
 
                 cout << BT << "Enter weight (kg): " << RET;
                 cin >> weight;
+                if (weight == -1)
+                    goto level_2;
 
                 cout << BT << "Enter height (cm): " << RET;
                 cin >> height;
+                if (weight == -1)
+                    goto level_2;
 
                 cout << BT << "Enter waist circumference (cm): " << RET;
                 cin >> waist;
+                if (weight == -1)
+                    goto level_2;
 
                 cout << BT << "Enter age: " << RET;
                 cin >> age;
+                if (weight == -1)
+                    goto level_2;
 
                 cout << BT << "Enter gender (m/f): " << RET;
                 cin >> gender;
@@ -697,7 +758,7 @@ Level_1:
                     cout << "Body Fat: " << GT << fixed << setprecision(2) << bodyfat << " %" << RET << endl;
                 cout << "Ideal Body Weight: " << GT << fixed << setprecision(2) << ibws << RET << " to " << GT << fixed << setprecision(2) << ibwe << " kg" << RET << endl;
                 cout << "Nutrition Status: " << nutrition << endl;
-                saveData(username, age, bmi, whtr, ibws, ibwe, bodyfat, nutrition);
+                saveData(username, age, bmi, whtr, ibws, ibwe, bodyfat, gender, nutrition);
                 healthAdvice(bmi, whtr, bodyfat, gender, age);
                 weightAdjustment(weight, height, age, bmi);
                 cout << YT << "Enter a number(5 for Menu): " << RET;
@@ -705,7 +766,7 @@ Level_1:
                 goto level_3;
                 break;
             case 2:
-                chatbot(username);
+                chatbot(username, ibws, ibwe);
                 cout << YT << "Enter a number(5 for Menu): " << RET;
                 cin >> num;
                 goto level_3;
@@ -736,6 +797,7 @@ Level_1:
                     {
                         float oldBMI = getLastBMI(username);
                         int oldAge = getLastAge(username);
+                        char oldGender = getLastGender(username);
                         if (oldBMI == -1 || oldAge == -1)
                         {
                             cout << RT << "No previous data found!" << RET << endl;
@@ -744,7 +806,7 @@ Level_1:
                         {
                             cout << BT << "\nUsing previous BMI: " << fixed << setprecision(1) << oldBMI << RET << endl;
                             cout << BT << "Using previous Age:" << oldAge << RET << endl;
-                            dietPlan(oldBMI, oldAge);
+                            dietPlan(oldBMI, oldAge, oldGender);
                         }
                     }
                     else
@@ -755,7 +817,7 @@ Level_1:
                 }
                 else
                 {
-                    dietPlan(bmi, age);
+                    dietPlan(bmi, age, gender);
                 }
                 cout << YT << "Enter a number(5 for Menu): " << RET;
                 cin >> num;
